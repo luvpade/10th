@@ -1,0 +1,643 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Moon, Sun, CheckCircle, Circle, Dumbbell, BookOpen, Calculator, 
+  Beaker, History, ChevronLeft, ChevronRight, Award, Cpu, 
+  AlertTriangle, Calendar, Clock, Flame, Zap, CheckSquare, BarChart3, Play, RotateCcw 
+} from 'lucide-react';
+
+const StudyDashboard = () => {
+  const [darkMode, setDarkMode] = useState(true);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState('daily');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  
+  // Gamification State
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+
+  // Task Status & Timings State
+  const [taskState, setTaskState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('boardPrepProgress_v8');
+      return saved ? JSON.parse(saved) : { status: {}, timings: {} };
+    } catch (e) {
+      return { status: {}, timings: {} };
+    }
+  });
+
+  // Schedule Data with DURATIONS (in minutes) instead of fixed times
+  const scheduleData = [
+    {
+      date: "Feb 5",
+      day: "Thursday",
+      phase: "Phase 1: Repair",
+      alert: "Start Strong. Hindi Grammar is the priority today.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (History)", topic: "Nationalism in India (Timeline & Satyagraha)", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Padbandh (Phrases) + 1 Formal Letter", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Light: Ray Diagrams (Concave/Convex)", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout: Mental Reset", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "Digital Documentation (Styles & Formatting)", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Statistics Calculation Drill", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 6",
+      day: "Friday",
+      phase: "Phase 1: Repair",
+      alert: "Geography Maps are easy marks. Don't skip.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (Geo)", topic: "Resources & Agriculture + Map Work (20 mins)", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Muhavare (Idioms) + 1 Notice Writing (Soochna)", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Human Eye: Defects & Prism", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "Spreadsheets: Goal Seek & Macros", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Surface Areas (Formulas)", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 7",
+      day: "Saturday",
+      phase: "Phase 1: Repair",
+      alert: "Weekend: Push hard on Pol Sci theory.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (Pol Sci)", topic: "Power Sharing + Federalism (Case Studies)", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Samas (Compounds) + 1 Paragraph (Anuched)", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Electricity: Circuit Numericals", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "DBMS: Primary Key & Query Basics", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Trig Identities Proofs", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 8",
+      day: "Sunday",
+      phase: "Phase 1: Repair",
+      alert: "Mock Test Day (Partial)",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (History)", topic: "Print Culture OR Making of Global World", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Vakya Rupantar (Sentence Transformation) + Email", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Magnetic Effects: Hand Rules Drill", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "Web Apps: Accessibility & Network Basics", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Circles Tangents", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 9",
+      day: "Monday",
+      phase: "Phase 1: Repair",
+      alert: "Focus on Hindi Spelling mistakes.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (Eco)", topic: "Money & Credit + Sectors of Economy", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Literature: Poetry (Kabir/Meera) Summaries", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Chemistry: Chemical Rxns & Acids Bases", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "Employability Skills (Green Skills/Self Mgmt)", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: AP - Nth Term", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 10",
+      day: "Tuesday",
+      phase: "Phase 1: Repair",
+      alert: "Pol Sci: Gender, Religion & Caste.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (Pol Sci)", topic: "Gender, Religion & Caste + Political Parties", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Literature: Prose (Bade Bhai Sahab) + Letter", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Chemistry: Metals & Non-Metals (Exceptions)", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "IT (402)", topic: "Part B Unit 4: Web Applications Security", type: "tech", icon: <Cpu /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Quadratic Equations", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 11",
+      day: "Wednesday",
+      phase: "Phase 1: Repair",
+      alert: "Last heavy push for SST before break.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST (Mix)", topic: "Globalisation + Manufacturing Ind + Maps", type: "heavy", icon: <History /> },
+        { id: 2, duration: 90, subject: "Hindi B", topic: "Full Grammar Mixed Quiz (50 MCQs)", type: "weakness", icon: <BookOpen /> },
+        { id: 3, duration: 60, subject: "Science", topic: "Biology: Life Processes (Heart/Excretion)", type: "maintenance", icon: <Beaker /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 60, subject: "English", topic: "Review: Footprints without Feet Characters", type: "light", icon: <BookOpen /> },
+        { id: 6, duration: 30, subject: "Maths", topic: "POSITIVE 30 MINS: Probability Cards/Dice", type: "drill", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 12",
+      day: "Thursday",
+      phase: "TRANSITION DAY",
+      alert: "Closing books on SST/Hindi. Preparing for Maths.",
+      tasks: [
+        { id: 1, duration: 120, subject: "SST + Hindi", topic: "Review Short Notes & Format of Letters", type: "review", icon: <BookOpen /> },
+        { id: 2, duration: 90, subject: "Science", topic: "Biology: Control & Coordination + Heredity", type: "maintenance", icon: <Beaker /> },
+        { id: 3, duration: 60, subject: "IT (402)", topic: "Review SQL Commands + Mail Merge", type: "tech", icon: <Cpu /> },
+        { id: 4, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 5, duration: 90, subject: "Maths", topic: "Review Syllabus & Formula Sheet", type: "prep", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 13",
+      day: "Friday",
+      phase: "Phase 2: MATHS ONLY",
+      alert: "Subject switch: MATHS MODE ACTIVATED.",
+      tasks: [
+        { id: 1, duration: 180, subject: "Maths", topic: "Real Numbers + Polynomials + Linear Eq", type: "core", icon: <Calculator /> },
+        { id: 2, duration: 150, subject: "Maths", topic: "Triangles & Circles (Geometry Day)", type: "core", icon: <Calculator /> },
+        { id: 3, duration: 60, subject: "Gym", topic: "Workout Session (Essential)", type: "break", icon: <Dumbbell /> },
+        { id: 4, duration: 120, subject: "Maths", topic: "Trigonometry + Applications", type: "core", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 14",
+      day: "Saturday",
+      phase: "Phase 2: MATHS ONLY",
+      alert: "Speed & Accuracy Day.",
+      tasks: [
+        { id: 1, duration: 180, subject: "Maths", topic: "Surface Areas + Statistics + Probability", type: "core", icon: <Calculator /> },
+        { id: 2, duration: 180, subject: "Maths", topic: "Sample Paper 1 (Strict 3 Hour Timer)", type: "exam", icon: <Calculator /> },
+        { id: 3, duration: 60, subject: "Gym", topic: "Workout Session", type: "break", icon: <Dumbbell /> },
+        { id: 4, duration: 90, subject: "Maths", topic: "Paper Analysis & Weak Area Fix", type: "review", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 15",
+      day: "Sunday",
+      phase: "Phase 2: MATHS ONLY",
+      alert: "Final Polish.",
+      tasks: [
+        { id: 1, duration: 180, subject: "Maths", topic: "Sample Paper 2 (Strict 3 Hour Timer)", type: "exam", icon: <Calculator /> },
+        { id: 2, duration: 120, subject: "Maths", topic: "Reviewing Mistakes from Sample Papers", type: "review", icon: <Calculator /> },
+        { id: 3, duration: 60, subject: "Gym", topic: "Light Workout / Walk", type: "break", icon: <Dumbbell /> },
+        { id: 4, duration: 120, subject: "Maths", topic: "NCERT Exemplar (Selected Tough Qs)", type: "core", icon: <Calculator /> },
+      ]
+    },
+    {
+      date: "Feb 16",
+      day: "Monday",
+      phase: "Phase 2: PRE-EXAM DAY",
+      alert: "Relax. Verify Admit Card & Stationery.",
+      tasks: [
+        { id: 1, duration: 120, subject: "Maths", topic: "Formula Sheet Revision Only", type: "light", icon: <Calculator /> },
+        { id: 2, duration: 60, subject: "Maths", topic: "Reviewing 'Standard' High Yield Questions", type: "light", icon: <Calculator /> },
+        { id: 3, duration: 60, subject: "Gym", topic: "Very Light Exercise", type: "break", icon: <Dumbbell /> },
+        { id: 4, duration: 90, subject: "Relax", topic: "Pack Bag, Sleep Early", type: "rest", icon: <CheckCircle /> },
+      ]
+    }
+  ];
+
+  // Exam Date Sheet
+  const examDates = [
+    { subject: "Mathematics", date: "Feb 17, 2026", daysLeft: 12, icon: <Calculator />, color: "text-red-500", bg: "bg-red-500/10" },
+    { subject: "English", date: "Feb 21, 2026", daysLeft: 16, icon: <BookOpen />, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { subject: "Science", date: "Feb 25, 2026", daysLeft: 20, icon: <Beaker />, color: "text-green-500", bg: "bg-green-500/10" },
+    { subject: "IT (402)", date: "Feb 27, 2026", daysLeft: 22, icon: <Cpu />, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { subject: "Hindi Course B", date: "Mar 02, 2026", daysLeft: 25, icon: <BookOpen />, color: "text-pink-500", bg: "bg-pink-500/10" },
+    { subject: "Social Science", date: "Mar 07, 2026", daysLeft: 30, icon: <History />, color: "text-yellow-500", bg: "bg-yellow-500/10" }
+  ];
+
+  // Initial Logic: Auto-detect Day & Countdown
+  useEffect(() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); 
+    const currentDate = today.getDate();
+
+    let foundTodayIndex = 0;
+    const newTaskState = { ...taskState };
+    let statusChanged = false;
+
+    scheduleData.forEach((day, index) => {
+      const [monthStr, dateStr] = day.date.split(' ');
+      const monthMap = { "Feb": 1, "Mar": 2 }; 
+      const schedMonth = monthMap[monthStr];
+      const schedDate = parseInt(dateStr);
+      
+      const scheduleDateObj = new Date(currentYear, schedMonth, schedDate);
+      const systemDateObj = new Date(currentYear, currentMonth, currentDate);
+
+      // Auto-complete past days
+      if (systemDateObj > scheduleDateObj) {
+        day.tasks.forEach(task => {
+          const key = `${day.date}-${task.id}`;
+          if (!newTaskState.status[key]) {
+            newTaskState.status[key] = true;
+            statusChanged = true;
+          }
+        });
+      }
+
+      if (systemDateObj.getDate() === scheduleDateObj.getDate() && systemDateObj.getMonth() === scheduleDateObj.getMonth()) {
+        foundTodayIndex = index;
+      }
+    });
+
+    if (statusChanged) {
+      setTaskState(newTaskState);
+    }
+    
+    if (foundTodayIndex > 0) {
+      setSelectedDateIndex(foundTodayIndex);
+    }
+
+    // Countdown Timer
+    const examTarget = new Date('February 17, 2026 10:30:00');
+    const timer = setInterval(() => {
+      const now = new Date();
+      const difference = examTarget - now;
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        });
+      } else {
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Save state on change
+  useEffect(() => {
+    localStorage.setItem('boardPrepProgress_v8', JSON.stringify(taskState));
+    
+    // XP Calculation
+    const completedCount = Object.values(taskState.status).filter(Boolean).length;
+    const newXp = completedCount * 50;
+    setXp(newXp);
+    setLevel(Math.floor(newXp / 500) + 1);
+  }, [taskState]);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  const toggleTask = (dateId, taskId) => {
+    setTaskState(prev => {
+      const key = `${dateId}-${taskId}`;
+      return { 
+        ...prev, 
+        status: { ...prev.status, [key]: !prev.status[key] } 
+      };
+    });
+  };
+
+  const startTask = (e, dateId, taskId, durationMinutes) => {
+    e.stopPropagation(); // Prevent toggling the completion check
+    const now = new Date();
+    
+    // Calculate End Time
+    const endTime = new Date(now.getTime() + durationMinutes * 60000);
+    
+    const formatTime = (date) => {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const timeString = `${formatTime(now)} - ${formatTime(endTime)}`;
+    
+    setTaskState(prev => ({
+      ...prev,
+      timings: { ...prev.timings, [`${dateId}-${taskId}`]: timeString }
+    }));
+  };
+
+  const currentDay = scheduleData[selectedDateIndex];
+
+  // Syllabus Logic
+  const getSyllabusStats = () => {
+    const subjects = {
+      "SST": { total: 0, completed: 0, color: "bg-yellow-500" },
+      "Hindi B": { total: 0, completed: 0, color: "bg-pink-500" },
+      "Science": { total: 0, completed: 0, color: "bg-green-500" },
+      "Maths": { total: 0, completed: 0, color: "bg-red-500" },
+      "IT (402)": { total: 0, completed: 0, color: "bg-purple-500" },
+      "English": { total: 0, completed: 0, color: "bg-blue-500" },
+    };
+
+    scheduleData.forEach(day => {
+      day.tasks.forEach(task => {
+        let subj = task.subject;
+        if (subj.includes("SST")) subj = "SST";
+        if (subj.includes("Maths")) subj = "Maths";
+        if (subj.includes("IT")) subj = "IT (402)";
+        if (subjects[subj]) {
+          subjects[subj].total += 1;
+          if (taskState.status[`${day.date}-${task.id}`]) {
+            subjects[subj].completed += 1;
+          }
+        }
+      });
+    });
+    return subjects;
+  };
+
+  const syllabusStats = getSyllabusStats();
+  const dailyProgress = Math.round((currentDay.tasks.filter(t => taskState.status[`${currentDay.date}-${t.id}`]).length / currentDay.tasks.length) * 100);
+
+  const completeDayAndMoveForward = () => {
+    const newState = { ...taskState };
+    currentDay.tasks.forEach(task => {
+      newState.status[`${currentDay.date}-${task.id}`] = true;
+    });
+    setTaskState(newState);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 2000);
+    if (selectedDateIndex < scheduleData.length - 1) {
+      setTimeout(() => setSelectedDateIndex(prev => prev + 1), 500);
+    }
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      
+      {/* --- LIVE PRECISION COUNTDOWN --- */}
+      <div className={`w-full py-4 text-center shadow-2xl z-50 ${
+        timeLeft.days <= 3 ? 'bg-red-600 animate-pulse' : 
+        timeLeft.days <= 7 ? 'bg-red-500' : 
+        'bg-indigo-600'
+      }`}>
+        <div className="flex flex-col items-center justify-center text-white">
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-80 mb-1">Board Exam Starts In</p>
+          <div className="flex items-center gap-4 text-white">
+             <div className="text-center">
+               <span className="text-4xl font-black">{timeLeft.days}</span>
+               <div className="text-[9px] uppercase">Days</div>
+             </div>
+             <div className="text-2xl font-thin opacity-50">:</div>
+             <div className="text-center">
+               <span className="text-4xl font-black">{timeLeft.hours}</span>
+               <div className="text-[9px] uppercase">Hours</div>
+             </div>
+             <div className="text-2xl font-thin opacity-50">:</div>
+             <div className="text-center">
+               <span className="text-4xl font-black">{timeLeft.minutes}</span>
+               <div className="text-[9px] uppercase">Mins</div>
+             </div>
+             <div className="text-2xl font-thin opacity-50">:</div>
+             <div className="text-center w-12">
+               <span className="text-4xl font-black">{timeLeft.seconds}</span>
+               <div className="text-[9px] uppercase">Sec</div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center bg-black/20">
+          <div className="text-6xl animate-bounce">🎉</div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className={`sticky top-0 z-10 px-6 py-3 border-b ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-gray-200'} backdrop-blur-sm`}>
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <div className="flex flex-col">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Level {level}
+                </h1>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Zap size={12} className="text-yellow-400 fill-yellow-400" />
+                  {xp} XP
+                </div>
+             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-full transition-colors ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-slate-700'}`}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto p-4 pb-24">
+        
+        {/* Navigation Tabs */}
+        <div className="flex bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl mb-6">
+          {['daily', 'syllabus', 'datesheet'].map(tab => (
+            <button 
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all capitalize ${activeTab === tab ? (darkMode ? 'bg-slate-700 shadow-sm text-white' : 'bg-white shadow-sm text-blue-600') : (darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-900')}`}
+            >
+              {tab === 'daily' ? 'Daily Mission' : tab === 'datesheet' ? 'Exam Dates' : 'Syllabus'}
+            </button>
+          ))}
+        </div>
+
+        {/* --- DAILY PLAN TAB --- */}
+        {activeTab === 'daily' && (
+          <>
+            <div className="flex items-center justify-between mb-6 overflow-x-auto py-2 no-scrollbar">
+              <button 
+                onClick={() => setSelectedDateIndex(Math.max(0, selectedDateIndex - 1))}
+                disabled={selectedDateIndex === 0}
+                className={`p-2 rounded-lg ${selectedDateIndex === 0 ? 'opacity-30' : 'hover:bg-blue-500/10'}`}
+              >
+                <ChevronLeft size={24} />
+              </button>
+
+              <div className="text-center">
+                <h2 className="text-xl font-bold">{currentDay.date}</h2>
+                <p className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>
+                  {currentDay.day}
+                </p>
+                <span className="text-xs text-orange-500 font-bold uppercase tracking-wider">{currentDay.phase}</span>
+              </div>
+
+              <button 
+                onClick={() => setSelectedDateIndex(Math.min(scheduleData.length - 1, selectedDateIndex + 1))}
+                disabled={selectedDateIndex === scheduleData.length - 1}
+                className={`p-2 rounded-lg ${selectedDateIndex === scheduleData.length - 1 ? 'opacity-30' : 'hover:bg-blue-500/10'}`}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+
+            <div className={`mb-6 p-4 rounded-xl border-l-4 ${darkMode ? 'bg-slate-800 border-blue-500' : 'bg-white border-blue-500 shadow-sm'}`}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="text-blue-500 shrink-0" size={20} />
+                <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                  <span className="font-bold">Strategy:</span> {currentDay.alert}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-8 flex items-end gap-4">
+              <div className="flex-1">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Daily Completion</span>
+                  <span className="font-bold">{dailyProgress}%</span>
+                </div>
+                <div className={`h-3 w-full rounded-full ${darkMode ? 'bg-slate-800' : 'bg-gray-200'}`}>
+                  <div 
+                    className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out"
+                    style={{ width: `${dailyProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+              <button 
+                onClick={completeDayAndMoveForward}
+                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <CheckSquare size={16} /> Conquer Day
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {currentDay.tasks.map((task) => {
+                const taskKey = `${currentDay.date}-${task.id}`;
+                const isCompleted = taskState.status[taskKey];
+                const activeTiming = taskState.timings[taskKey];
+                
+                return (
+                  <div 
+                    key={task.id}
+                    onClick={() => toggleTask(currentDay.date, task.id)}
+                    className={`
+                      group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer select-none
+                      ${isCompleted 
+                        ? (darkMode ? 'bg-slate-800/50 border-slate-700 opacity-60' : 'bg-gray-50 border-gray-200 opacity-60') 
+                        : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400 shadow-sm')}
+                    `}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Checkbox */}
+                      <div className={`mt-1 flex-shrink-0 transition-colors ${isCompleted ? 'text-green-500' : (darkMode ? 'text-slate-600 group-hover:text-blue-400' : 'text-gray-300 group-hover:text-blue-400')}`}>
+                        {isCompleted ? <CheckCircle size={24} fill="currentColor" className="text-green-500 bg-white rounded-full" /> : <Circle size={24} />}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            task.subject === 'Gym' ? 'bg-orange-500/10 text-orange-500' :
+                            task.subject === 'Maths' ? 'bg-red-500/10 text-red-500' :
+                            task.subject.includes('SST') ? 'bg-yellow-500/10 text-yellow-500' :
+                            task.subject === 'Science' ? 'bg-green-500/10 text-green-500' :
+                            task.subject.includes('IT') ? 'bg-purple-500/10 text-purple-500' :
+                            'bg-blue-500/10 text-blue-500'
+                          }`}>
+                            {task.subject}
+                          </span>
+                          
+                          {/* DYNAMIC TIME OR START BUTTON */}
+                          {activeTiming ? (
+                             <span className={`text-sm font-mono font-bold ${darkMode ? 'text-green-400' : 'text-green-600'} flex items-center gap-1`}>
+                               {activeTiming}
+                             </span>
+                          ) : (
+                             <button
+                               onClick={(e) => startTask(e, currentDay.date, task.id, task.duration)}
+                               className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 hover:scale-105 transition-transform shadow-sm
+                                 ${darkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-100 hover:bg-blue-200 text-blue-700'}`}
+                             >
+                               <Play size={10} fill="currentColor" /> START ({task.duration}m)
+                             </button>
+                          )}
+                        </div>
+                        
+                        <h3 className={`font-semibold text-lg mb-1 ${isCompleted ? 'line-through decoration-2' : ''}`}>
+                          {task.topic}
+                        </h3>
+                        
+                        <div className={`flex items-center gap-2 text-sm ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                          {task.icon}
+                          <span className="capitalize">{task.type}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* --- DATESHEET TAB --- */}
+        {activeTab === 'datesheet' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Calendar className="text-blue-500" />
+              Official Date Sheet
+            </h2>
+            
+            {examDates.map((exam, index) => (
+              <div 
+                key={index}
+                className={`p-5 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} flex items-center justify-between`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${exam.bg} ${exam.color}`}>
+                    {exam.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">{exam.subject}</h3>
+                    <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>{exam.date}</p>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <div className={`text-2xl font-black ${exam.daysLeft <= 15 ? 'text-red-500' : (darkMode ? 'text-white' : 'text-gray-900')}`}>
+                    {exam.daysLeft}
+                  </div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider opacity-60">Days Left</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* --- SYLLABUS TAB --- */}
+        {activeTab === 'syllabus' && (
+           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-500/20 to-blue-500/20 border border-indigo-500/30">
+               <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
+                 <BarChart3 className="text-indigo-400" /> Syllabus Status
+               </h2>
+               <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                 This tracks your 12-Day Revision Plan. Complete daily tasks to fill these bars.
+               </p>
+             </div>
+
+             <div className="grid gap-4">
+                {Object.entries(syllabusStats).map(([subject, stats]) => {
+                  const percent = Math.round((stats.completed / stats.total) * 100) || 0;
+                  return (
+                    <div key={subject} className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-bold">{subject}</span>
+                        <span className="text-xs font-mono opacity-70">{stats.completed}/{stats.total} Tasks</span>
+                      </div>
+                      <div className={`h-4 w-full rounded-full ${darkMode ? 'bg-slate-900' : 'bg-gray-100'}`}>
+                        <div 
+                          className={`h-4 rounded-full transition-all duration-1000 ease-out ${stats.color}`}
+                          style={{ width: `${percent}%` }}
+                        ></div>
+                      </div>
+                      <div className="mt-1 text-right text-xs font-bold">{percent}% Complete</div>
+                    </div>
+                  );
+                })}
+             </div>
+           </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default StudyDashboard;
